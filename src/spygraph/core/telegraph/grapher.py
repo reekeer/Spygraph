@@ -1,6 +1,7 @@
 import html
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import Optional
 
 import requests
 from telegraph import Telegraph
@@ -15,7 +16,7 @@ class HTMLContentParser(HTMLParser):
         self.body_content = []
         self.skip_script = False
         self.skip_style = False
-    
+
     def handle_starttag(self, tag, attrs):
         if tag == "title":
             self.in_title = True
@@ -26,12 +27,9 @@ class HTMLContentParser(HTMLParser):
         elif tag == "style":
             self.skip_style = True
         elif self.in_body and not self.skip_script and not self.skip_style:
-            attr_str = " ".join([f'{k}="{v}"' for k, v in attrs if v is not None])
-            if attr_str:
-                self.body_content.append(f"<{tag} {attr_str}>")
-            else:
-                self.body_content.append(f"<{tag}>")
-    
+            attr_str = " ".join(f'{k}="{v}"' for k, v in attrs if v is not None)
+            self.body_content.append(f"<{tag} {attr_str}>" if attr_str else f"<{tag}>")
+
     def handle_endtag(self, tag):
         if tag == "title":
             self.in_title = False
@@ -43,14 +41,14 @@ class HTMLContentParser(HTMLParser):
             self.skip_style = False
         elif self.in_body and not self.skip_script and not self.skip_style:
             self.body_content.append(f"</{tag}>")
-    
+
     def handle_data(self, data):
         if self.in_title and not self.skip_script and not self.skip_style:
             if not self.title:
                 self.title = data.strip()
         elif self.in_body and not self.skip_script and not self.skip_style:
             self.body_content.append(data)
-    
+
     def get_body_html(self):
         return "".join(self.body_content).strip()
 
@@ -59,135 +57,115 @@ class Grapher(Telegraph):
     def __init__(self, access_token=None, domain_graph=None):
         self.domain_graph = domain_graph or "telegra.ph"
         self.base_url = f"https://{self.domain_graph}"
+        self.TEXT_EXTENSIONS = {".txt", ".md"}
+
         super().__init__(access_token=access_token)
-    
-    def create_page_from_html(
-        self,
-        html_file_path: str,
-        img_src: str,
-        author: str = None,
-        author_url: str = None
-    ) -> dict:
-        file_path = Path(html_file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"HTML file not found: {html_file_path}")
-        
-        with open(file_path, encoding='utf-8') as f:
-            html_content = f.read()
-        
+
+    @staticmethod
+    def _read_text_file(file_path: str | Path, missing_label: str) -> str:
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"{missing_label} file not found: {file_path}")
+
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+
+    @staticmethod
+    def _parse_html(html_content: str) -> tuple[str, str]:
         parser = HTMLContentParser()
         parser.feed(html_content)
-        
-        title = parser.title or "Untitled"
-        body_content = parser.get_body_html()
-        
-        img_html = f'<img src="{img_src}" />'
-        final_content = f"{body_content}\n{img_html}"
-        
+
+        return parser.title or "Untitled", parser.get_body_html()
+
+    @staticmethod
+    def _build_page_args(
+        title: str,
+        html_content: str,
+        author: Optional[str] = None,
+        author_url: Optional[str] = None,
+    ) -> dict:
+
         page_args = {
             "title": title,
-            "html_content": final_content,
+            "html_content": html_content,
+            "author_name": author or "SpyGraph",
+            "author_url": author_url or None,
         }
-        
-        if author:
-            page_args["author_name"] = author
-        if author_url:
-            page_args["author_url"] = author_url
-        
-        page = self.create_page(**page_args)
-        
-        return {
-            "url": page.get("url"),
-            "path": page.get("path"),
-            "views": page.get("views", 0),
-            "title": title,
-            "image_src": img_src,
-            "raw_page": page
-        }
-    
-    def parse_html_file(self, html_file_path: str) -> dict:
-        file_path = Path(html_file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"HTML file not found: {html_file_path}")
-        
-        with open(file_path, encoding='utf-8') as f:
-            html_content = f.read()
-        
-        parser = HTMLContentParser()
-        parser.feed(html_content)
-        
-        return {
-            "title": parser.title or "Untitled",
-            "content": parser.get_body_html(),
-            "raw_html": html_content
-        }
-    
-    def create_page_from_txt_with_image(
+
+        return page_args
+
+    def create_page(
         self,
-        txt_file_path: str,
-        img_src: str,
-        title: str = None,
-        tracking_domain: str = None,
-        author: str = None,
-        author_url: str = None
+        content_file_path: Optional[str] = None,
+        track_url: Optional[str] = None,
+        title: Optional[str] = None,
+        author: Optional[str] = None,
+        author_url: Optional[str] = None,
+        **kwargs,
     ) -> dict:
-        file_path = Path(txt_file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"Text file not found: {txt_file_path}")
-        
-        with open(file_path, encoding='utf-8') as f:
-            text_content = f.read()
-        
-        safe_text = html.escape(text_content)
-        html_content = safe_text.replace('\n', '<br>')
-        
-        if tracking_domain:
-            tracking_img_src = f"{img_src}?domain={tracking_domain}"
+        if content_file_path is None and track_url is None:
+            passthrough_kwargs = dict(kwargs)
+            if title is not None:
+                passthrough_kwargs["title"] = title
+            if author is not None:
+                passthrough_kwargs["author_name"] = author
+            if author_url is not None:
+                passthrough_kwargs["author_url"] = author_url
+            return super().create_page(**passthrough_kwargs)
+
+        if not content_file_path or not track_url:
+            raise ValueError(
+                "Both content_file_path and track_url are required for content-based page creation"
+            )
+
+        file_path = Path(content_file_path)
+        extension = file_path.suffix.lower()
+
+        if extension in self.TEXT_EXTENSIONS:
+            text_content = self._read_text_file(file_path, "Text")
+            body_content = html.escape(text_content).replace("\n", "<br>")
+            page_title = title or file_path.stem or "Untitled"
         else:
-            tracking_img_src = img_src
-        
-        img_html = f'<img src="{tracking_img_src}" />'
-        final_content = f"{html_content}\n{img_html}"
-        
-        page_args = {
-            "title": title or file_path.stem or "Untitled",
-            "html_content": final_content,
-        }
-        
-        if author:
-            page_args["author_name"] = author
-        if author_url:
-            page_args["author_url"] = author_url
-        
-        page = self.create_page(**page_args)
-        
+            html_content = self._read_text_file(file_path, "HTML")
+            parsed_title, body_content = self._parse_html(html_content)
+            page_title = title or parsed_title
+
+        final_content = f'{body_content}\n<img src="{track_url}" />'
+
+        page_args = self._build_page_args(page_title, final_content, author, author_url)
+        page = super().create_page(**page_args)
+
         return {
             "url": page.get("url"),
             "path": page.get("path"),
             "views": page.get("views", 0),
-            "title": page_args["title"],
-            "image_src": img_src,
-            "tracking_domain": tracking_domain,
+            "title": page_title,
             "telegraph_domain": self.domain_graph,
-            "raw_page": page
+            "raw_page": page,
         }
-        
+
+    def parse_html_file(self, html_file_path: str) -> dict:
+        html_content = self._read_text_file(html_file_path, "HTML")
+        title, body_content = self._parse_html(html_content)
+
+        return {"title": title, "content": body_content, "raw_html": html_content}
+
     @staticmethod
     def create_account(
         short_name: str,
-        author_name: str = None,
-        author_url: str = None,
-        domain_graph: str = None
+        author_name: Optional[str] = None,
+        author_url: Optional[str] = None,
+        domain_graph: Optional[str] = None,
     ) -> dict:
         domain = domain_graph or "telegra.ph"
-        
+
         if domain == "telegra.ph":
             api_domain = "api.telegra.ph"
         else:
             api_domain = f"api.{domain}".replace("api.api.", "api.")
-        
+
         api_url = f"https://{api_domain}"
-        
+
         account_data = {
             "short_name": short_name,
         }
@@ -195,20 +173,19 @@ class Grapher(Telegraph):
             account_data["author_name"] = author_name
         if author_url:
             account_data["author_url"] = author_url
-        
-        response = requests.post(
-            f"{api_url}/createAccount",
-            json=account_data
-        )
-        
+
+        response = requests.post(f"{api_url}/createAccount", json=account_data)
+
         if response.status_code != 200:
             raise Exception(f"Failed to create Telegraph account: {response.text}")
-        
+
         result = response.json()
-        
+
         if not result.get("ok"):
-            raise Exception(f"Telegraph API error: {result.get('error', 'Unknown error')}")
-        
+            raise Exception(
+                f"Telegraph API error: {result.get('error', 'Unknown error')}"
+            )
+
         return {
             "access_token": result["result"]["access_token"],
             "auth_url": result["result"].get("auth_url"),
@@ -216,59 +193,5 @@ class Grapher(Telegraph):
                 "short_name": result["result"].get("short_name"),
                 "author_name": result["result"].get("author_name"),
                 "author_url": result["result"].get("author_url"),
-            }
+            },
         }
-    
-    def create_page_from_html_with_domain(
-        self,
-        html_file_path: str,
-        img_src: str,
-        tracking_domain: str = None,
-        title: str = None,
-        author: str = None,
-        author_url: str = None
-    ) -> dict:
-        file_path = Path(html_file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"HTML file not found: {html_file_path}")
-        
-        with open(file_path, encoding='utf-8') as f:
-            html_content = f.read()
-        
-        parser = HTMLContentParser()
-        parser.feed(html_content)
-        
-        page_title = title or parser.title or "Untitled"
-        body_content = parser.get_body_html()
-        
-        if tracking_domain:
-            tracking_img_src = f"{img_src}?domain={tracking_domain}"
-        else:
-            tracking_img_src = img_src
-        
-        img_html = f'<img src="{tracking_img_src}" />'
-        final_content = f"{body_content}\n{img_html}"
-        
-        page_args = {
-            "title": page_title,
-            "html_content": final_content,
-        }
-        
-        if author:
-            page_args["author_name"] = author
-        if author_url:
-            page_args["author_url"] = author_url
-        
-        page = self.create_page(**page_args)
-        
-        return {
-            "url": page.get("url"),
-            "path": page.get("path"),
-            "views": page.get("views", 0),
-            "title": page_title,
-            "image_src": img_src,
-            "tracking_domain": tracking_domain,
-            "telegraph_domain": self.domain_graph,
-            "raw_page": page
-        }
-        
