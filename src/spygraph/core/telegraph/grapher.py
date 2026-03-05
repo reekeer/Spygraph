@@ -1,7 +1,6 @@
 import html
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Optional
 
 import requests
 from telegraph import Telegraph
@@ -57,7 +56,7 @@ class Grapher(Telegraph):
     def __init__(self, access_token=None, domain_graph=None):
         self.domain_graph = domain_graph or "telegra.ph"
         self.base_url = f"https://{self.domain_graph}"
-        self.TEXT_EXTENSIONS = {".txt", ".md"}
+        self.TEXT_EXTENSIONS: set[str] = {".txt", ".md"}
 
         super().__init__(access_token=access_token)
 
@@ -81,9 +80,9 @@ class Grapher(Telegraph):
     def _build_page_args(
         title: str,
         html_content: str,
-        author: Optional[str] = None,
-        author_url: Optional[str] = None,
-    ) -> dict:
+        author: str | None = None,
+        author_url: str | None = None,
+    ) -> dict[str, str | None]:
 
         page_args = {
             "title": title,
@@ -94,13 +93,13 @@ class Grapher(Telegraph):
 
         return page_args
 
-    def create_page(
+    def create_grabber_page(
         self,
-        content_file_path: Optional[str] = None,
-        track_url: Optional[str] = None,
-        title: Optional[str] = None,
-        author: Optional[str] = None,
-        author_url: Optional[str] = None,
+        content_file_path: str | None = None,
+        track_url: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        author_url: str | None = None,
         **kwargs,
     ) -> dict:
         if content_file_path is None and track_url is None:
@@ -114,9 +113,7 @@ class Grapher(Telegraph):
             return super().create_page(**passthrough_kwargs)
 
         if not content_file_path or not track_url:
-            raise ValueError(
-                "Both content_file_path and track_url are required for content-based page creation"
-            )
+            raise ValueError("Both content_file_path and track_url are required for content-based page creation")
 
         file_path = Path(content_file_path)
         extension = file_path.suffix.lower()
@@ -151,19 +148,15 @@ class Grapher(Telegraph):
         return {"title": title, "content": body_content, "raw_html": html_content}
 
     @staticmethod
-    def create_account(
+    def create_graph_account(
         short_name: str,
-        author_name: Optional[str] = None,
-        author_url: Optional[str] = None,
-        domain_graph: Optional[str] = None,
+        author_name: str | None = None,
+        author_url: str | None = None,
+        domain_graph: str | None = None,
     ) -> dict:
         domain = domain_graph or "telegra.ph"
 
-        if domain == "telegra.ph":
-            api_domain = "api.telegra.ph"
-        else:
-            api_domain = f"api.{domain}".replace("api.api.", "api.")
-
+        api_domain = "api.telegra.ph" if domain == "telegra.ph" else f"api.{domain}".replace("api.api.", "api.")
         api_url = f"https://{api_domain}"
 
         account_data = {
@@ -182,9 +175,7 @@ class Grapher(Telegraph):
         result = response.json()
 
         if not result.get("ok"):
-            raise Exception(
-                f"Telegraph API error: {result.get('error', 'Unknown error')}"
-            )
+            raise Exception(f"Telegraph API error: {result.get('error', 'Unknown error')}")
 
         return {
             "access_token": result["result"]["access_token"],

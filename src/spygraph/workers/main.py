@@ -15,19 +15,17 @@ from spygraph.workers.logger import process_logs
 from spygraph.workers.runner import run_api
 
 
-from typing import Optional
-
 def main(
     host: str = "0.0.0.0",
     port: int = 8000,
-    telegraph_token: Optional[str] = None,
-    tracking_domain: Optional[str] = None,
-    domain_graph: Optional[str] = None,
-    page_title: Optional[str] = None,
-    page_content: Optional[str] = None,
-    page_author: Optional[str] = None,
-    ssl_cert: Optional[str] = None,
-    ssl_key: Optional[str] = None,
+    telegraph_token: str | None = None,
+    tracking_domain: str | None = None,
+    domain_graph: str | None = None,
+    page_title: str | None = None,
+    page_content: str | None = None,
+    page_author: str | None = None,
+    ssl_cert: str | None = None,
+    ssl_key: str | None = None,
 ):
     console = Console()
 
@@ -65,9 +63,7 @@ def main(
             content_path = page_content
             tmp_html_path = None
             if not content_path:
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".html", delete=False
-                ) as tmp:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as tmp:
                     tmp.write(default_html)
                     tmp_html_path = tmp.name
                 content_path = tmp_html_path
@@ -75,7 +71,7 @@ def main(
             content_path_obj = os.path.expanduser(content_path)
 
             try:
-                page_result = grapher.create_page(
+                page_result = grapher.create_grabber_page(
                     content_file_path=content_path_obj,
                     track_url=track_url,
                     title=page_title,
@@ -85,20 +81,12 @@ def main(
                 telegraph_url = page_result["url"]
 
                 telegraph_content = Text()
-                telegraph_content.append(
-                    "  ◆ Telegraph page created\n", style="magenta"
-                )
-                telegraph_content.append(
-                    f"    ◦ URL: {telegraph_url}\n", style="magenta"
-                )
+                telegraph_content.append("  ◆ Telegraph page created\n", style="magenta")
+                telegraph_content.append(f"    ◦ URL: {telegraph_url}\n", style="magenta")
                 if tracking_domain:
-                    telegraph_content.append(
-                        f"    ◦ Domain: {tracking_domain}\n", style="magenta"
-                    )
+                    telegraph_content.append(f"    ◦ Domain: {tracking_domain}\n", style="magenta")
                 else:
-                    telegraph_content.append(
-                        f"    ◦ Domain: {api_host}\n", style="magenta"
-                    )
+                    telegraph_content.append(f"    ◦ Domain: {api_host}\n", style="magenta")
 
                 telegraph_panel = Panel(
                     telegraph_content,

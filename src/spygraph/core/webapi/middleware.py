@@ -2,7 +2,7 @@ import json
 import platform
 import re
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -78,31 +78,19 @@ def parse_user_agent(ua: str | None) -> dict:
                 "6.2": "Windows 8",
                 "6.1": "Windows 7",
                 "6.0": "Windows Vista",
-            }
+            },
         },
-        "macOS": {
-            "pattern": r"Mac OS X ([0-9_\.]+)",
-            "process": lambda v: f"macOS {v.replace('_', '.')}"
-        },
-        "Linux": {
-            "pattern": r"Linux",
-            "versions": {"": "Linux"}
-        },
-        "Android": {
-            "pattern": r"Android ([0-9\.]+)",
-            "process": lambda v: f"Android {v}"
-        },
-        "iOS": {
-            "pattern": r"iPhone|iPad|iPod",
-            "versions": {"": "iOS"}
-        }
+        "macOS": {"pattern": r"Mac OS X ([0-9_\.]+)", "process": lambda v: f"macOS {v.replace('_', '.')}"},
+        "Linux": {"pattern": r"Linux", "versions": {"": "Linux"}},
+        "Android": {"pattern": r"Android ([0-9\.]+)", "process": lambda v: f"Android {v}"},
+        "iOS": {"pattern": r"iPhone|iPad|iPod", "versions": {"": "iOS"}},
     }
 
     for os_name, os_config in os_patterns.items():
         match = re.search(os_config["pattern"], ua)
         if match:
             result["os"] = os_name
-            
+
             if "process" in os_config:
                 version_str = match.group(1) if match.lastindex and match.lastindex >= 1 else ""
                 result["os_version"] = os_config["process"](version_str)
@@ -116,7 +104,7 @@ def parse_user_agent(ua: str | None) -> dict:
     mobile_keywords = ["mobile", "android", "iphone", "ipad", "ipod", "blackberry", "windows phone"]
     is_mobile = any(k in ua.lower() for k in mobile_keywords)
     result["is_mobile"] = is_mobile
-    
+
     if is_mobile:
         if any(x in ua.lower() for x in ["iphone", "ipad", "ipod"]):
             result["device"] = "iOS"
@@ -128,8 +116,18 @@ def parse_user_agent(ua: str | None) -> dict:
         result["device"] = "Desktop"
 
     bot_keywords = [
-        "bot", "crawler", "spider", "python-requests", "httpx", "aiohttp", 
-        "scrapy", "wget", "curl", "postman", "googlebot", "bingbot"
+        "bot",
+        "crawler",
+        "spider",
+        "python-requests",
+        "httpx",
+        "aiohttp",
+        "scrapy",
+        "wget",
+        "curl",
+        "postman",
+        "googlebot",
+        "bingbot",
     ]
     if any(k in ua.lower() for k in bot_keywords):
         result["is_bot"] = True
@@ -145,26 +143,19 @@ def extract_telemetry(request: Request) -> dict:
 
     return {
         "timestamp": time.time(),
-        
         "runtime": {
             "server_os": platform.platform(),
             "python_version": platform.python_version(),
             "system": platform.system(),
             "machine": platform.machine(),
         },
-
         "network": {
-            "ip": (
-                headers.get("X-Forwarded-For")
-                or headers.get("X-Real-IP")
-                or (request.client.host if request.client else None)
-            ),
+            "ip": (headers.get("X-Forwarded-For") or headers.get("X-Real-IP") or (request.client.host if request.client else None)),
             "port": request.client.port if request.client else None,
             "host": headers.get("Host"),
             "referer": headers.get("Referer"),
             "origin": headers.get("Origin"),
         },
-
         "http": {
             "method": request.method,
             "path": request.url.path,
@@ -172,7 +163,6 @@ def extract_telemetry(request: Request) -> dict:
             "scheme": request.url.scheme,
             "http_version": request.headers.get("HTTP_VERSION", "HTTP/1.1"),
         },
-
         "client": {
             "headers": {
                 "user_agent": ua,
@@ -192,7 +182,6 @@ def extract_telemetry(request: Request) -> dict:
                 "sec_ch_ua_mobile": headers.get("Sec-CH-UA-Mobile"),
                 "sec_ch_ua_platform": headers.get("Sec-CH-UA-Platform"),
             },
-
             "fingerprint": {
                 "raw_user_agent": ua_parsed.get("raw_user_agent", ""),
                 "browser": ua_parsed.get("browser"),
@@ -204,7 +193,6 @@ def extract_telemetry(request: Request) -> dict:
                 "is_bot": ua_parsed.get("is_bot"),
             },
         },
-
         "security": {
             "upgrade_insecure_requests": headers.get("Upgrade-Insecure-Requests"),
             "content_security_policy": headers.get("Content-Security-Policy"),
@@ -213,13 +201,11 @@ def extract_telemetry(request: Request) -> dict:
             "cf_connecting_ip": headers.get("CF-Connecting-IP"),
             "true_client_ip": headers.get("True-Client-IP"),
         },
-
         "encoding": {
             "content_encoding": headers.get("Content-Encoding"),
             "transfer_encoding": headers.get("Transfer-Encoding"),
             "accept_encoding": headers.get("Accept-Encoding"),
         },
-
         "language": {
             "accept_language": headers.get("Accept-Language"),
         },
@@ -230,7 +216,7 @@ class TelemetryMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, uuid):
         super().__init__(app)
         self.uuid = uuid
-        
+
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
 
@@ -239,9 +225,7 @@ class TelemetryMiddleware(BaseHTTPMiddleware):
         if request.url.path.endswith(f"/{self.uuid}"):
             telemetry = extract_telemetry(request)
 
-            telemetry["performance"] = {
-                "response_time_ms": round((time.time() - start_time) * 1000, 2)
-            }
+            telemetry["performance"] = {"response_time_ms": round((time.time() - start_time) * 1000, 2)}
 
             print(json.dumps(telemetry, indent=2, ensure_ascii=False))
 
@@ -265,10 +249,8 @@ class SecurityHeadersMiddleware:
                 for key, value in self.headers.items():
                     # Пропускаем None значения
                     if value is not None:
-                        raw_headers.append(
-                            (key.lower().encode("latin-1"), value.encode("latin-1"))
-                        )
-                    
+                        raw_headers.append((key.lower().encode("latin-1"), value.encode("latin-1")))
+
             await send(message)
 
         await self.app(scope, receive, send_wrapper)

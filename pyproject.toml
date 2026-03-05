@@ -44,7 +44,9 @@ spygraph = "spygraph.cli:main"
 
 [project.optional-dependencies]
 dev = [
-  "ruff"
+  "ruff",
+  "black",
+  "pyright"
 ]
 
 [tool.hatch.version]
@@ -64,7 +66,33 @@ lint = "ruff check ."
 
 [tool.ruff]
 line-length = 140
-target-version = "py39"
+target-version = "py312"
+fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "B", "I", "UP"]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM",
+]
+
+ignore = [
+  "E501"
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.black]
+line-length = 140
+target-version = ["py312"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+reportMissingImports = true
+reportMissingTypeStubs = false

@@ -6,6 +6,7 @@ def random_token(length=16) -> str:
     chars = string.ascii_letters + string.digits
     return "".join(random.choice(chars) for _ in range(length))
 
+
 def get_fingerprint() -> dict[str, str]:
     fingerprints = [
         {"Server": "Apache/2.4.41", "X-Powered-By": "PHP/7.4.3"},
@@ -32,7 +33,7 @@ def get_fingerprint() -> dict[str, str]:
         {"Server": "Apache/2.4.51", "X-Powered-By": "WordPress"},
         {"Server": "Microsoft-IIS/7.5", "X-Powered-By": ".NET Framework 4.0"},
         {"Server": "Gunicorn/20.1.0", "X-Powered-By": "Python"},
-        {"Server": "nginx/1.20.2", "X-Powered-By": "Next.js"}
+        {"Server": "nginx/1.20.2", "X-Powered-By": "Next.js"},
     ]
 
     selected = random.choice(fingerprints)

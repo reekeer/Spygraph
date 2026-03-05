@@ -8,5 +8,5 @@ __all__ = [
     "api_security_headers",
     "parse_user_agent",
     "extract_telemetry",
-    "Grapher"
+    "Grapher",
 ]
