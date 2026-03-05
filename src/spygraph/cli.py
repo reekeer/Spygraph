@@ -99,6 +99,24 @@ def main() -> None:
         help="Account name for new Telegraph account (default: SpyGraph)"
     )
     run_parser.add_argument(
+        "--title",
+        type=str,
+        default="SpyGraph Target",
+        help="Title for the Telegraph page (default: SpyGraph Target)"
+    )
+    run_parser.add_argument(
+        "--content",
+        type=str,
+        default=None,
+        help="Path to HTML/TXT content file for Telegraph page"
+    )
+    run_parser.add_argument(
+        "--author_name",
+        type=str,
+        default="SpyGraph",
+        help="Author name for Telegraph page (default: SpyGraph)"
+    )
+    run_parser.add_argument(
         "--ssl-cert",
         type=str,
         default=None,
@@ -184,6 +202,9 @@ def main() -> None:
                 telegraph_token=telegraph_token,
                 tracking_domain=args.domain,
                 domain_graph=args.domain_graph,
+                page_title=args.title,
+                page_content_path=args.content,
+                page_author=args.author_name,
                 ssl_cert=args.ssl_cert,
                 ssl_key=args.ssl_key
             )

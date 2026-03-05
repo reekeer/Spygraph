@@ -224,6 +224,7 @@ class Grapher(Telegraph):
         html_file_path: str,
         img_src: str,
         tracking_domain: str = None,
+        title: str = None,
         author: str = None,
         author_url: str = None
     ) -> dict:
@@ -237,7 +238,7 @@ class Grapher(Telegraph):
         parser = HTMLContentParser()
         parser.feed(html_content)
         
-        title = parser.title or "Untitled"
+        page_title = title or parser.title or "Untitled"
         body_content = parser.get_body_html()
         
         if tracking_domain:
@@ -249,7 +250,7 @@ class Grapher(Telegraph):
         final_content = f"{body_content}\n{img_html}"
         
         page_args = {
-            "title": title,
+            "title": page_title,
             "html_content": final_content,
         }
         
@@ -264,7 +265,7 @@ class Grapher(Telegraph):
             "url": page.get("url"),
             "path": page.get("path"),
             "views": page.get("views", 0),
-            "title": title,
+            "title": page_title,
             "image_src": img_src,
             "tracking_domain": tracking_domain,
             "telegraph_domain": self.domain_graph,

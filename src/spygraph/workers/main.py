@@ -21,6 +21,9 @@ def main(
     telegraph_token: str = None,
     tracking_domain: str = None,
     domain_graph: str = None,
+    page_title: str = None,
+    page_content: str = None,
+    page_author: str = None,
     ssl_cert: str = None,
     ssl_key: str = None
 ):
@@ -50,17 +53,34 @@ def main(
             <p>Your device information is being logged.</p>
             """
             
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as tmp:
-                tmp.write(default_html)
-                tmp_html_path = tmp.name
+            content_path = page_content
+            tmp_html_path = None
+            if not content_path:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as tmp:
+                    tmp.write(default_html)
+                    tmp_html_path = tmp.name
+                content_path = tmp_html_path
+
+            content_path_obj = os.path.expanduser(content_path)
+            content_ext = os.path.splitext(content_path_obj)[1].lower()
             
             try:
-                page_result = grapher.create_page_from_html_with_domain(
-                    html_file_path=tmp_html_path,
-                    img_src=img_src,
-                    tracking_domain=tracking_domain,
-                    author="SpyGraph",
-                )
+                if content_ext in {".txt", ".md"}:
+                    page_result = grapher.create_page_from_txt_with_image(
+                        txt_file_path=content_path_obj,
+                        img_src=img_src,
+                        title=page_title,
+                        tracking_domain=tracking_domain,
+                        author=page_author or "SpyGraph",
+                    )
+                else:
+                    page_result = grapher.create_page_from_html_with_domain(
+                        html_file_path=content_path_obj,
+                        img_src=img_src,
+                        tracking_domain=tracking_domain,
+                        title=page_title,
+                        author=page_author or "SpyGraph",
+                    )
                 
                 telegraph_url = page_result["url"]
                 
@@ -76,7 +96,8 @@ def main(
                 console.print(telegraph_panel)
                 console.print()
             finally:
-                os.unlink(tmp_html_path)
+                if tmp_html_path and os.path.exists(tmp_html_path):
+                    os.unlink(tmp_html_path)
         
         except Exception as e:
             error_content = Text(f"  Error: {e}\n", style="magenta")
