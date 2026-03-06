@@ -37,6 +37,7 @@ def main() -> None:
     run_parser.add_argument("--host", type=str, default="0.0.0.0", help="Server listen address (default: 0.0.0.0)")
     run_parser.add_argument("--port", type=int, default=8000, help="Server listen port (default: 8000)")
     run_parser.add_argument("--domain", type=str, required=True, help="Custom tracking domain (your domain bound to API IP)")
+    run_parser.add_argument("--ipwhois", action="store_true", help="Enable IPWHOIS lookups for additional info in logs")
     run_parser.add_argument(
         "--telegraph-token", type=str, default=None, help="Telegraph access token (if not provided, will create new account)"
     )
@@ -127,6 +128,7 @@ def main() -> None:
                 page_author=args.author_name,
                 ssl_cert=args.ssl_cert,
                 ssl_key=args.ssl_key,
+                ipwhois=args.ipwhois,
             )
         except KeyboardInterrupt:
             rprint("\n[yellow]Server stopped[/yellow]")
