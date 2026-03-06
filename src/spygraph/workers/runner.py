@@ -25,7 +25,13 @@ class QueueWriter:
 
 
 def run_api(
-    queue: Queue, host: str = "0.0.0.0", port: int = 8000, ssl_cert: str | None = None, ssl_key: str | None = None, uuid: str | None = None
+    queue: Queue,
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    ssl_cert: str | None = None,
+    ssl_key: str | None = None,
+    uuid: str | None = None,
+    ipwhois: bool = False,
 ):
     old_stdout = sys.stdout
     old_stderr = sys.stderr
@@ -35,7 +41,7 @@ def run_api(
     sys.stderr = queue_writer
 
     try:
-        api = WebApi(config={"forced_uuid": uuid})
+        api = WebApi(config={"forced_uuid": uuid, "ipwhois": ipwhois})
 
         config_kwargs = {"app": api, "host": host, "port": port, "log_level": "info", "server_header": False}
 

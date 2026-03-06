@@ -4,6 +4,7 @@ import re
 import time
 from collections.abc import Callable
 
+import httpx
 from fastapi.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -212,10 +213,47 @@ def extract_telemetry(request: Request) -> dict:
     }
 
 
+async def ipwhois_lookup(ip: str) -> dict:
+    if ip.startswith("127.") or ip == "localhost":
+        return {
+            "type": "local",
+            "country": "Localhost",
+            "region": "Local",
+            "city": "Local",
+            "latitude": None,
+            "longitude": None,
+            "isp": "Local Network",
+            "asn": None,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(f"https://ipwho.is/{ip}")
+            data = r.json()
+
+            if not data.get("success", False):
+                return {"type": "unknown"}
+
+            return {
+                "type": data.get("type"),
+                "country": data.get("country"),
+                "region": data.get("region"),
+                "city": data.get("city"),
+                "latitude": data.get("latitude"),
+                "longitude": data.get("longitude"),
+                "isp": data.get("connection", {}).get("isp"),
+                "asn": data.get("connection", {}).get("asn"),
+            }
+
+    except Exception:
+        return {"type": "error"}
+
+
 class TelemetryMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, uuid):
+    def __init__(self, app, uuid: str = "", ipwhois: bool = False):
         super().__init__(app)
         self.uuid = uuid
+        self.ipwhois = ipwhois
 
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
@@ -226,6 +264,9 @@ class TelemetryMiddleware(BaseHTTPMiddleware):
             telemetry = extract_telemetry(request)
 
             telemetry["performance"] = {"response_time_ms": round((time.time() - start_time) * 1000, 2)}
+
+            if self.ipwhois and telemetry["network"]["ip"]:
+                telemetry["network"]["ipwhois"] = await ipwhois_lookup(telemetry["network"]["ip"])
 
             print(json.dumps(telemetry, indent=2, ensure_ascii=False))
 

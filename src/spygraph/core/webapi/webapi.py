@@ -13,10 +13,10 @@ class WebApi(FastAPI):
         self.api_token = random_token()
         self.silent_start = config.get("silent_start", False) if isinstance(config, dict) else False
 
-        if isinstance(config, dict) and config.get("forced_uuid"):
-            self.UUID = config.get("forced_uuid")
-        else:
-            self.UUID = str(uuid.uuid4())
+        forced_uuid = config.get("forced_uuid") if isinstance(config, dict) else None
+        self.UUID: str = forced_uuid if isinstance(forced_uuid, str) else str(uuid.uuid4())
+
+        self.ipwhois: bool = bool(config.get("ipwhois")) if isinstance(config, dict) else False
 
         self.API_BASE_URL = "/api/v1/pictures"
 
@@ -41,7 +41,7 @@ class WebApi(FastAPI):
                 **kwargs,
             )
 
-            self.add_middleware(TelemetryMiddleware, uuid=self.UUID)
+            self.add_middleware(TelemetryMiddleware, uuid=self.UUID, ipwhois=self.ipwhois)
 
             self.add_middleware(SecurityHeadersMiddleware, headers=api_security_headers())
 

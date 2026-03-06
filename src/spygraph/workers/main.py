@@ -26,6 +26,7 @@ def main(
     page_author: str | None = None,
     ssl_cert: str | None = None,
     ssl_key: str | None = None,
+    ipwhois: bool = False,
 ):
     console = Console()
 
@@ -133,7 +134,7 @@ def main(
 
     api_process = Process(
         target=run_api,
-        args=(queue, host, port, ssl_cert, ssl_key, static_uuid),
+        args=(queue, host, port, ssl_cert, ssl_key, static_uuid, ipwhois),
         daemon=False,
     )
     logger_process = Process(target=process_logs, args=(queue,), daemon=False)
