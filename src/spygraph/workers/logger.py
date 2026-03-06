@@ -67,6 +67,18 @@ def format_json_output(data: dict) -> None:
         content.append(f"    ◆ Referer: {network.get('referer', 'N/A')}\n", style="magenta")
         content.append(f"    ◆ Origin: {network.get('origin', 'N/A')}\n\n", style="magenta")
 
+        if network.get("ipwhois"):
+            ipwhois = network["ipwhois"]
+            content.append("    ◆ IPWHOIS\n", style="magenta")
+            content.append(f"      ◦ Type: {ipwhois.get('type', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ Country: {ipwhois.get('country', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ Region: {ipwhois.get('region', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ City: {ipwhois.get('city', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ Latitude: {ipwhois.get('latitude', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ Longitude: {ipwhois.get('longitude', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ ISP: {ipwhois.get('isp', 'N/A')}\n", style="magenta")
+            content.append(f"      ◦ ASN: {ipwhois.get('asn', 'N/A')}\n\n", style="magenta")
+
         content.append("  • CLIENT\n", style="magenta")
         content.append(
             f"    ◆ Browser: {fingerprint.get('browser', 'Unknown')} {fingerprint.get('browser_version', '')}\n", style="magenta"
