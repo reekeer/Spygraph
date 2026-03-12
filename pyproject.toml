@@ -7,11 +7,16 @@ name = "spygraph"
 dynamic = ["version"]
 description = "SpyGraph - a tool for revealing the IP address of a target, using Telegra.ph"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 
 authors = [
   { name = "reekeer team" }
+]
+
+maintainers = [
+  { name = "delewer", email = "del@reekeer.hidden" },
+  { name = "oneq2", email = "oneq2@reekeer.hidden" }
 ]
 
 keywords = ["telegra.ph", "telegram", "ipgrabber", "grabber", "osint"]
@@ -20,10 +25,15 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Environment :: Console",
+  "Framework :: FastAPI",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License",
 ]
 
 dependencies = [
@@ -67,7 +77,7 @@ lint = "ruff check ."
 
 [tool.ruff]
 line-length = 140
-target-version = "py312"
+target-version = "py310"
 fix = true
 
 [tool.ruff.lint]
@@ -90,10 +100,10 @@ indent-style = "space"
 
 [tool.black]
 line-length = 140
-target-version = ["py312"]
+target-version = ["py310"]
 
 [tool.pyright]
-pythonVersion = "3.12"
+pythonVersion = "3.10"
 typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
